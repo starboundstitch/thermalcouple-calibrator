@@ -2,17 +2,24 @@ from dataclasses import dataclass
 import serial
 import time
 
+import nidaqmx
+from nidaqmx.constants import AcquisitionType, ThermocoupleType, TemperatureUnits
+
 
 @dataclass
 class State:
     ser: serial = 0
+    task: nidaqmx.Task = 0
     curTemp: float = 0
     curSetpoint: float = 0
     curStability: bool = 0
+    probeTemp: float = 0
 
 
-# testPoints = [ 50, 75, 100, 125]
-testPoints = [130, 150, 175, 125, 100]
+testPoints = [76, 80]
+testPoints = [125, 150, 175, 125, 100, 75]
+
+dataPoints = []
 
 
 def storeState(state: State, cmd: str, data: str):
@@ -28,15 +35,16 @@ def storeState(state: State, cmd: str, data: str):
 
 def createSerial() -> serial:
     return serial.Serial(
-        port="/dev/ttyUSB0",
+        port="COM7",
         baudrate=9600,
         timeout=0.1,
         stopbits=serial.STOPBITS_ONE,
     )
 
 
-def takeData(temp: float):
-    print("Data Has Been Taken at " + str(temp) + " Degrees")
+def takeData(state: State) -> float:
+    dataPoints.append((state.curTemp, state.probeTemp))
+    print(str(state.curTemp) + " Degrees: " + str(state.probeTemp))
 
 
 def setTemp(state: State, temp: float):
@@ -66,13 +74,15 @@ def periodicSerial(state: State) -> State:
         writeSerial(ser, cmd)
         storeState(state, cmd, readSerial(ser))
 
+    state.probeTemp = state.task.read()
+
     return state
 
 
 def writeSerial(ser: serial, cmd: str):
 
     cmd = cmd + "\r"
-    print(cmd)
+    # print(cmd)
     ser.write(bytes(cmd, "ascii"))
 
 
@@ -102,7 +112,7 @@ def collectData(state: State):
 
             # If Temperature is stable
             if state.curStability == True:
-                takeData(temp)
+                takeData(state)
                 break
 
 
@@ -110,13 +120,31 @@ def main():
 
     state = State()
 
-    # Turn on the Heater
-    writeSerial(ser, "OUTP:STAT 1")
+    # Thermalcouple Setup -- MUST CLOSE TASK
+    with nidaqmx.Task() as task:
+        task.ai_channels.add_ai_thrmcpl_chan(
+            "cDAQ3Mod2/ai2",
+            units=TemperatureUnits.DEG_C,
+            thermocouple_type=ThermocoupleType.T,
+        )
 
-    # Collect Data for all the temperatures
-    collectData(state)
+        # task.timing.cfg_samp_clk_timing(5.0, sample_mode=AcquisitionType.CONTINUOUS)
+        state.task = task
 
-    print("Finished Collecting Data")
+        # Turn on the Heater
+        writeSerial(ser, "OUTP:STAT 1")
+
+        try:
+            # Collect Data for all the temperatures
+            collectData(state)
+
+            print("Finished Collecting Data")
+            print(dataPoints)
+
+        except KeyboardInterrupt:
+            pass
+        finally:
+            task.stop()
 
 
 if __name__ == "__main__":
