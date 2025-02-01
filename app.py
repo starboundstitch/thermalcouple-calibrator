@@ -126,7 +126,7 @@ def main():
     # Thermalcouple Setup -- MUST CLOSE TASK
     with nidaqmx.Task() as task:
         task.ai_channels.add_ai_thrmcpl_chan(
-            "cDAQ3Mod2/ai2",
+            "cDAQ1Mod3/ai14",
             units=TemperatureUnits.DEG_C,
             thermocouple_type=ThermocoupleType.T,
         )
