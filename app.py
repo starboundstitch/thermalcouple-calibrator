@@ -3,7 +3,7 @@ import serial
 import time
 
 import nidaqmx
-from nidaqmx.constants import AcquisitionType, ThermocoupleType, TemperatureUnits
+from nidaqmx.constants import AcquisitionType, ThermocoupleType, TemperatureUnits, RTDType, ResistanceConfiguration, ExcitationSource
 
 
 @dataclass
@@ -14,6 +14,7 @@ class State:
     curSetpoint: float = 0
     curStability: bool = 0
     probeTemp: float = 0
+    RTDTemp: float = 0
 
 
 testPoints = [76, 80]
@@ -74,7 +75,9 @@ def periodicSerial(state: State) -> State:
         writeSerial(ser, cmd)
         storeState(state, cmd, readSerial(ser))
 
-    state.probeTemp = state.task.read()
+    data = state.task.read()
+    state.probeTemp = data[0]
+    state.RTDTemp = data[1]
 
     return state
 
@@ -126,6 +129,13 @@ def main():
             "cDAQ3Mod2/ai2",
             units=TemperatureUnits.DEG_C,
             thermocouple_type=ThermocoupleType.T,
+        )
+        task.ai_channels.add_ai_rtd_chan(
+             "cDAQ1Mod1/ai0",
+             rtd_type=RTDType.PT_3851,
+             resistance_config=ResistanceConfiguration.FOUR_WIRE,
+             current_excit_source=ExcitationSource.INTERNAL,
+             current_excit_val=.0005
         )
 
         # task.timing.cfg_samp_clk_timing(5.0, sample_mode=AcquisitionType.CONTINUOUS)
