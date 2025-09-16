@@ -152,6 +152,13 @@ class State:
             )
         )
 
+    # Turns the heating element on the thermocouple calibrator off
+    def heaterEnabled(self, val):
+        state = "0"
+        if val == True:
+            state = "1"
+        self.writeSerial("OUTP:STAT {}".format(state))
+
     # Serial port creation
     def createSerial(self) -> serial:
         return serial.Serial(
@@ -186,6 +193,7 @@ def main():
         state.task = task
 
         # Turn on the Heater
+        state.heaterEnabled(True)
 
         try:
             # Collect Data for all the temperatures
@@ -198,6 +206,7 @@ def main():
             pass
         finally:
             task.stop()
+            state.heaterEnabled(False)
             state.ser.close()
 
 
