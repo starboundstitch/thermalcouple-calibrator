@@ -75,6 +75,7 @@ class State:
         self.pastData.append(data)
         self.probeTemp = data[0]
         self.RTDTemp = data[1]
+        self.updateRTDSlope()
 
         # Truncate Past Data if too large
         if len(self.pastData) > (60 / WAIT_TIME):
@@ -124,6 +125,19 @@ class State:
             text += msg
             msg = self.ser.read().decode()
         return text
+
+    # Calculates the Slope of RTDType
+    # Should be changed in the future to calculate slope of everything in the data object
+    # and make sure they are within configurable slopes (aka make sure thermocouples are
+    # also within the calibration spec and that they have their own calibration spec input
+    # case there is a particularly noisy probe)
+    def updateRTDSlope(self):
+
+        # Get array of data
+        rtd_arr = [data[1] for data in self.pastData]
+        # Calculate the Linear Regression
+        regress = scipy.stats.linregress(list(range(len(rtd_arr))), rtd_arr)
+        self.RTDSlope = regress[0]
 
     # Prints information important for the status of the program
     # might do ncurses if I care later
