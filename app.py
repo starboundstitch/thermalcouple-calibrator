@@ -52,6 +52,7 @@ class State:
 
                 # Update State from Device
                 self.collectData()
+                self.statusLine()
 
                 # If Temperature is stable
                 # Modify to have an external stability function that ensures stability with every
@@ -124,6 +125,18 @@ class State:
             msg = self.ser.read().decode()
         return text
 
+    # Prints information important for the status of the program
+    # might do ncurses if I care later
+    def statusLine(self):
+        print(
+            "CurSetpoint: {} FlukeTemp: {} ProbeTemp: {} RTDTemp: {} RTDSlope: {}".format(
+                self.curSetpoint,
+                self.flukeTemp,
+                self.probeTemp,
+                self.RTDTemp,
+                self.RTDSlope,
+            )
+        )
 
     # Serial port creation
     def createSerial(self) -> serial:
