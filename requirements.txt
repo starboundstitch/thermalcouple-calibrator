@@ -1,3 +1,4 @@
 nidaqmx
 pyserial
+pyyaml
 scipy

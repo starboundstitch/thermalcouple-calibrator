@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+import yaml
+import scipy
 import serial
 import time
-import scipy
 
 import nidaqmx
 from nidaqmx.constants import (
@@ -13,16 +14,16 @@ from nidaqmx.constants import (
     ExcitationSource,
 )
 
-testPoints = [76, 80]
-testPoints = [125, 150, 175, 125, 100, 75]
 MAX_STABILITY_SLOPE = 0.1
-WAIT_TIME = 5
-
 
 @dataclass
 class State:
 
     def __init__(self):
+        # Config File
+        with open('config.yml', 'r') as file:
+            self.config = yaml.safe_load(file)
+
         self.ser: serial = self.createSerial()
         self.task: nidaqmx.Task = 0
         self.pastData = []
@@ -43,12 +44,17 @@ class State:
     # Collects Data required for each of the test points and stores the state
     def calibrateProbe(self):
 
-        for temp in testPoints:
+        for temp in self.config['calibration']['points']:
             # Set Setpoint
             self.setTemp(temp)
 
             while True:
-                time.sleep(WAIT_TIME)
+
+                # Sleep Based on Sample Time
+                # WARNING: This needs to be after the temperature set and
+                # before the stability is checked or else it can collect data
+                # twice in a row
+                time.sleep(self.config['calibration']['sample_time'])
 
                 # Update State from Device
                 self.collectData()
@@ -72,13 +78,14 @@ class State:
 
         # Updates Currently Stored Data
         data = self.task.read()
+        data[0] = self.calibRTDTemp(data[0])
         self.pastData.append(data)
-        self.probeTemp = data[0]
-        self.RTDTemp = data[1]
+        self.RTDTemp = data[0]
+        self.probeTemp = data[1]
         self.updateRTDSlope()
 
         # Truncate Past Data if too large
-        if len(self.pastData) > (60 / WAIT_TIME):
+        if len(self.pastData) > (self.config['calibration']['stability_time'] / self.config['calibration']['sample_time']):
             del self.pastData[:1]
 
     # Takes one point of data and stores it to the global calibrationData list
@@ -134,7 +141,7 @@ class State:
     def updateRTDSlope(self):
 
         # Get array of data
-        rtd_arr = [data[1] for data in self.pastData]
+        rtd_arr = [data[0] for data in self.pastData]
         # Calculate the Linear Regression
         regress = scipy.stats.linregress(list(range(len(rtd_arr))), rtd_arr)
         self.RTDSlope = regress[0]
@@ -162,34 +169,44 @@ class State:
     # Serial port creation
     def createSerial(self) -> serial:
         return serial.Serial(
-            port="COM5",
+            port=self.config['serial']['port'],
             baudrate=9600,
             timeout=0.1,
             stopbits=serial.STOPBITS_ONE,
         )
+
+    def calibRTDTemp(self, res):
+        rtd = self.config['RTD']
+        return rtd['high_coefficient'] * res**2 + rtd['low_coefficient'] * res + rtd['constant_coefficient']
 
 
 def main():
 
     # Thermalcouple Setup -- MUST CLOSE TASK OR BAD THINGS HAPPEN
     with nidaqmx.Task() as task:
-        task.ai_channels.add_ai_thrmcpl_chan(
-            "cDAQ2Mod3/ai0",
-            units=TemperatureUnits.DEG_C,
-            thermocouple_type=ThermocoupleType.T,
-        )
-        task.ai_channels.add_ai_rtd_chan(
-            "cDAQ2Mod1/ai0",
-            rtd_type=RTDType.PT_3750,
+        # Create Calibration State (loads config)
+        state = State()
+
+        rtd = state.config['RTD']
+        task.ai_channels.add_ai_resistance_chan(
+            "{}{}/{}".format(rtd['device'], rtd['module'], rtd['channel']),
             resistance_config=ResistanceConfiguration.FOUR_WIRE,
             current_excit_source=ExcitationSource.INTERNAL,
-            current_excit_val=0.0005,
+            current_excit_val=rtd['current_excit_val'],
+
         )
+        thermo = state.config['thermocouple']
+        tc_type = thermo['type']
+        for channel in thermo['channel']:
+            task.ai_channels.add_ai_thrmcpl_chan(
+                "{}{}/{}".format(thermo['device'], thermo['module'], channel),
+                units=TemperatureUnits.DEG_C,
+                thermocouple_type=ThermocoupleType[tc_type],
+            )
 
         # task.timing.cfg_samp_clk_timing(5.0, sample_mode=AcquisitionType.CONTINUOUS)
 
         # Create internal calibration state
-        state = State()
         state.task = task
 
         # Turn on the Heater

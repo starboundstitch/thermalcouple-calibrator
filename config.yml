@@ -1,0 +1,47 @@
+# Calibration Configuration
+calibration:
+  # Test Points for Calibration
+  points: [125, 150, 175, 125, 100, 75]
+  # Minimum Time for Stability Criteria
+  stability_time: 60
+  # Time Between Data Samples
+  sample_time: 5
+  # Wait Time Between Serial Commands for Validation
+  command_time: 0.005
+# Fluke Device Serial Port
+serial:
+  # Serial Port (COMX in windows device manager)
+  port: "COM5"
+# RTD Temperature Probe
+RTD:
+  # Second Order Calibration Coefficient
+  high_coefficient: 0.001139
+  # First Order Calibration Coefficient
+  low_coefficient: 2.320800
+  # Constant Calibration Coefficient
+  constant_coefficient: -243.417949
+  # Current Excitation Value (A)
+  current_excit_val: 0.0005
+  # Max Slope that Permits Calibration Point Collection
+  max_stability_slope: 0.02
+  # NI Device
+  device: "cDAQ2"
+  # NI Module
+  module: "Mod1"
+  # NI Channel
+  channel: "ai0"
+# Thermocouple Temperature Probes
+thermocouple:
+  # Thermocouple Type (sets for all probes)
+  type: "T"
+  # Max Slope that Permits Calibration Point Collection
+  max_stability_slope: 0.02
+  # NI Device
+  device: "cDAQ2"
+  # NI Module
+  module: "Mod3"
+  # NI Channel
+  # (This is a list that takes all channels you would like to calibrate)
+  channel:
+    - "ai0"
+    # - "a2"
