@@ -126,10 +126,10 @@ class State:
 
     # Takes one point of data and stores it to the global calibrationData list
     def addCalibrationPoint(self) -> float:
-        self.calibrationData.append((self.RTDTemp, self.probeTemp))
-        print(
-            "RTD_Temp: {} Probe_Temp: {}".format(str(self.RTDTemp), str(self.probeTemp))
-        )
+        data = self.pastData[-1]
+        self.calibrationData.append(data)
+        print("**Collecting Data**")
+        print(data)
 
     def setTemp(self, temp: float):
 
