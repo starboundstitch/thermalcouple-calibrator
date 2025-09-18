@@ -8,6 +8,8 @@ calibration:
   sample_time: 5
   # Wait Time Between Serial Commands for Validation
   command_time: 0.005
+  # Name of the Output File with Calibration Data
+  file_name: "calibration.xlsx"
 # Fluke Device Serial Port
 serial:
   # Serial Port (COMX in windows device manager)

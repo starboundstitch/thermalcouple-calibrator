@@ -1,5 +1,6 @@
 nidaqmx
 pandas
+pyopenxml
 pyserial
 pyyaml
 scipy

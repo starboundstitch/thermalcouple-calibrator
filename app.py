@@ -40,8 +40,43 @@ class State:
         self.RTDSlope: float = np.nan
         self.calibrationData = []
 
-    def getCalibrationData(self):
-        return self.calibrationData
+    def writeCalibrationData(self):
+
+        # Regression of Tuple Data
+
+        df = pd.DataFrame(self.calibrationData)
+        df_t = df.transpose().to_numpy()
+
+        regress = []
+
+        for probe in df_t[1:]:
+
+            # Calculate our Linear Regressions
+            if len(probe) > 1:
+                regress.append(scipy.stats.linregress(probe, df_t[0]))
+            else:
+                regress.append(np.nan)
+
+        regress = np.matrix(regress).transpose()
+
+        # Export Specific Code
+
+        # Get Probe Heading Label
+        headers = ['RTD']
+        headers.extend(self.config['thermocouple']['channel'])
+        df.columns = headers
+
+        slope = ["Slope"]
+        slope.extend(np.asarray(regress[0]).flatten())
+
+        intercept = ["Intercept"]
+        intercept.extend(np.asarray(regress[1]).flatten())
+
+        # Add slope and intercept to dataframe
+        df.loc[len(df)] = slope
+        df.loc[len(df)] = intercept
+
+        df.to_excel("calibration.xlsx", sheet_name="sheet1", index=False)
 
     # Collects Data required for each of the test points and stores the state
     def calibrateProbe(self):
@@ -240,7 +275,7 @@ def main():
             state.calibrateProbe()
 
             print("Finished Collecting Data")
-            print(state.getCalibrationData())
+            state.writeCalibrationData()
 
         except KeyboardInterrupt:
             pass
