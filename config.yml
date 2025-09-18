@@ -35,7 +35,7 @@ thermocouple:
   # Thermocouple Type (sets for all probes)
   type: "T"
   # Max Slope that Permits Calibration Point Collection
-  max_stability_slope: 0.02
+  max_stability_slope: 0.05
   # NI Device
   device: "cDAQ2"
   # NI Module

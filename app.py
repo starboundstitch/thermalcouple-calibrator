@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-import yaml
+import numpy as np
+import pandas as pd
 import scipy
 import serial
 import time
+import yaml
 
 import nidaqmx
 from nidaqmx.constants import (
@@ -35,7 +37,7 @@ class State:
         self.curSetpoint: float = 0
         self.curStability: bool = 0
         # Calibration Data
-        self.RTDSlope: float = 100
+        self.RTDSlope: float = np.nan
         self.calibrationData = []
 
     def getCalibrationData(self):
@@ -61,11 +63,45 @@ class State:
                 self.statusLine()
 
                 # If Temperature is stable
-                # Modify to have an external stability function that ensures stability with every
-                # thermocouple probe that is hooked to the system
-                if (self.curStability == True) & (self.RTDSlope < MAX_STABILITY_SLOPE):
+                if self.checkStability():
                     self.addCalibrationPoint()
                     break
+
+    def checkStability(self) -> bool:
+
+        # Attempt to skip regression testing
+        if self.curStability == False:
+            self.RTDSlope = np.nan
+            return False
+
+        # Regression of Tuple Data
+
+        df = pd.DataFrame(self.pastData)
+        df_t = df.transpose().to_numpy()
+
+        regress = []
+
+        for probe in df_t:
+
+            # Calculate our Linear Regressions
+
+            if len(probe) > 1:
+                regress.append(scipy.stats.linregress(list(range(len(probe))), probe))
+            else:
+                regress.append(np.nan)
+
+        regress = np.asarray(np.matrix(regress).transpose()[0]).flatten()
+
+        self.RTDSlope = regress[0]
+
+        checks = 0
+        thermo_slope = self.config['thermocouple']['max_stability_slope']
+        for regression in regress[1:]:
+            # Increment Check Value
+            if abs(regression) < thermo_slope:
+                checks = checks + 1
+
+        return (abs(self.RTDSlope) < self.config['RTD']['max_stability_slope']) & ((len(regress)-1) == checks)
 
     def collectData(self):
 
@@ -78,11 +114,11 @@ class State:
 
         # Updates Currently Stored Data
         data = self.task.read()
+        # Convert RTD from resistance to Temperature
         data[0] = self.calibRTDTemp(data[0])
         self.pastData.append(data)
         self.RTDTemp = data[0]
         self.probeTemp = data[1]
-        self.updateRTDSlope()
 
         # Truncate Past Data if too large
         if len(self.pastData) > (self.config['calibration']['stability_time'] / self.config['calibration']['sample_time']):
@@ -132,19 +168,6 @@ class State:
             text += msg
             msg = self.ser.read().decode()
         return text
-
-    # Calculates the Slope of RTDType
-    # Should be changed in the future to calculate slope of everything in the data object
-    # and make sure they are within configurable slopes (aka make sure thermocouples are
-    # also within the calibration spec and that they have their own calibration spec input
-    # case there is a particularly noisy probe)
-    def updateRTDSlope(self):
-
-        # Get array of data
-        rtd_arr = [data[0] for data in self.pastData]
-        # Calculate the Linear Regression
-        regress = scipy.stats.linregress(list(range(len(rtd_arr))), rtd_arr)
-        self.RTDSlope = regress[0]
 
     # Prints information important for the status of the program
     # might do ncurses if I care later
