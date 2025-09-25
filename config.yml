@@ -2,6 +2,11 @@
 calibration:
   # Test Points for Calibration
   points: [125, 150, 175, 125, 100, 75]
+  generate:
+    enabled: True
+    max_temp: 150
+    min_temp: 50
+    points: 10
   # Minimum Time for Stability Criteria
   stability_time: 60
   # Time Between Data Samples

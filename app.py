@@ -92,7 +92,14 @@ class State:
     # Collects Data required for each of the test points and stores the state
     def calibrateProbe(self):
 
-        for temp in self.config['calibration']['points']:
+        points = []
+
+        if self.config['calibration']['generate']['enabled']:
+            points = self.generatePoints()
+        else:
+            points = self.config['calibration']['points']
+
+        for temp in points:
             # Set Setpoint
             self.setTemp(temp)
 
@@ -249,6 +256,40 @@ class State:
         rtd = self.config['RTD']
         return rtd['high_coefficient'] * res**2 + rtd['low_coefficient'] * res + rtd['constant_coefficient']
 
+
+    # Generates Point functionality in the config file
+    def generatePoints(self):
+        # inputs
+        generation = self.config['calibration']['generate']
+        min_temp = generation['min_temp']
+        max_temp = generation['max_temp']
+        point_count = generation['points']
+
+        # Generate Point List
+        point_list = np.linspace(min_temp, max_temp, point_count)
+        midpoint = int(np.floor((point_count) / 2))
+
+        sorted_points = []
+
+        # Deal With Odd Case
+        is_odd = point_count % 2 != 0
+        if is_odd:
+            sorted_points.append(point_list[midpoint])
+
+        # Sorting Algorithm
+        for i in range(midpoint):
+            # Append Decreasing Val
+            sorted_points.append(point_list[i])
+            # Append Increasing Val
+            if is_odd:
+                sorted_points.append(point_list[i + midpoint + 1])
+            else:
+                sorted_points.append(point_list[i + midpoint])
+
+        print("***Generated Point***")
+        print(sorted_points)
+
+        return sorted_points
 
 def main():
 
