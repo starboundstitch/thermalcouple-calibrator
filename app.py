@@ -115,12 +115,15 @@ class State:
 
                 # Update State from Device
                 self.collectData()
-                self.statusLine()
 
                 # If Temperature is stable
                 if self.checkStability():
                     self.addCalibrationPoint()
+                    self.statusLine()
                     break
+
+                # Update Status
+                self.statusLine()
 
     def checkStability(self) -> bool:
 
