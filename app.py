@@ -352,6 +352,11 @@ def main():
 
         except KeyboardInterrupt:
             pass
+        except:
+            print("**Was not able to aquire NI Task**")
+            print("Please ensure device, channel, and module are all correct in the config file.")
+            print("Also ensure that your device is plugged in and showing in the NI MAX software.")
+            input("Hit enter to end program: ")
         finally:
             task.stop()
             state.heaterEnabled(False)
