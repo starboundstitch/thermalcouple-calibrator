@@ -36,7 +36,6 @@ class State:
         self.curSetpoint: float = 0
         self.curStability: bool = 0
         # Calibration Data
-        self.RTDSlope: float = np.nan
         self.probeStability: str = ''
         self.calibrationData = []
 
@@ -129,7 +128,7 @@ class State:
 
         # Attempt to skip regression testing
         if self.curStability == False:
-            self.RTDSlope = np.nan
+            self.probeStability = 'Fluke Unstable'
             return False
 
         # Regression of Tuple Data
@@ -149,8 +148,6 @@ class State:
                 regress.append(np.nan)
 
         regress = np.asarray(np.matrix(regress).transpose()[0]).flatten()
-
-        self.RTDSlope = regress[0]
 
         # State vars for Stability
         checks = 0
@@ -338,8 +335,6 @@ def main():
             )
 
         print("**NI Devices Initialized**")
-
-        # task.timing.cfg_samp_clk_timing(5.0, sample_mode=AcquisitionType.CONTINUOUS)
 
         # Create internal calibration state
         state.task = task
