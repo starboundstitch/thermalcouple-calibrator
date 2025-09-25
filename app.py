@@ -76,7 +76,18 @@ class State:
         df.loc[len(df)] = slope
         df.loc[len(df)] = intercept
 
-        df.to_excel("calibration.xlsx", sheet_name="sheet1", index=False)
+        # Catch cases where the file cannot be written and ensure data isn't lost
+        while True:
+            try:
+                df.to_excel("calibration.xlsx", sheet_name="sheet1", index=False)
+                break
+            except:
+                print("File cannot be written, try closing any open programs using the file and ensure you have permissions to write in this folder")
+
+            while True:
+                input("Hit Enter to Attempt to re-write file.")
+                break
+
 
     # Collects Data required for each of the test points and stores the state
     def calibrateProbe(self):
