@@ -37,6 +37,7 @@ class State:
         self.curStability: bool = 0
         # Calibration Data
         self.RTDSlope: float = np.nan
+        self.probeStability: str = ''
         self.calibrationData = []
 
     def writeCalibrationData(self):
@@ -148,14 +149,30 @@ class State:
 
         self.RTDSlope = regress[0]
 
+        # State vars for Stability
         checks = 0
+        self.probeStability = ''
+
+        # Check for RTD to be stable
+        if abs(regress[0]) < self.config['RTD']['max_stability_slope']:
+            checks += 1
+            self.probeStability += '1'
+        else:
+            self.probeStability += '0'
+
+        # Check for all Thermocouples to be stable
         thermo_slope = self.config['thermocouple']['max_stability_slope']
         for regression in regress[1:]:
             # Increment Check Value
             if abs(regression) < thermo_slope:
                 checks = checks + 1
+                self.probeStability += '1'
+            else:
+                self.probeStability += '0'
 
-        return (abs(self.RTDSlope) < self.config['RTD']['max_stability_slope']) & ((len(regress)-1) == checks)
+
+        # Every Regressed value must return within specifications for this to return True
+        return len(regress) == checks
 
     def collectData(self):
 
@@ -227,12 +244,12 @@ class State:
     # might do ncurses if I care later
     def statusLine(self):
         print(
-            "CurSetpoint: {} FlukeTemp: {} ProbeTemp: {} RTDTemp: {} RTDSlope: {}".format(
+                "CurSetpoint: {:.3f} FlukeTemp: {:.3f} RTDTemp: {:.3f} ProbeTemp: {:.3f} Probe Stability: {}".format(
                 self.curSetpoint,
                 self.flukeTemp,
                 self.probeTemp,
                 self.RTDTemp,
-                self.RTDSlope,
+                self.probeStability,
             )
         )
 
