@@ -5,7 +5,7 @@ calibration:
   # Minimum Time for Stability Criteria
   stability_time: 60
   # Time Between Data Samples
-  sample_time: 5
+  polling_time: 5
   # Wait Time Between Serial Commands for Validation
   command_time: 0.005
   # Name of the Output File with Calibration Data

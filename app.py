@@ -102,7 +102,7 @@ class State:
                 # WARNING: This needs to be after the temperature set and
                 # before the stability is checked or else it can collect data
                 # twice in a row
-                time.sleep(self.config['calibration']['sample_time'])
+                time.sleep(self.config['calibration']['polling_time'])
 
                 # Update State from Device
                 self.collectData()
@@ -167,7 +167,7 @@ class State:
         self.probeTemp = data[1]
 
         # Truncate Past Data if too large
-        if len(self.pastData) > (self.config['calibration']['stability_time'] / self.config['calibration']['sample_time']):
+        if len(self.pastData) > (self.config['calibration']['stability_time'] / self.config['calibration']['polling_time']):
             del self.pastData[:1]
 
     # Takes one point of data and stores it to the global calibrationData list
@@ -244,6 +244,7 @@ class State:
             stopbits=serial.STOPBITS_ONE,
         )
 
+    # Converts RTD resistance to temperature based on calibration data
     def calibRTDTemp(self, res):
         rtd = self.config['RTD']
         return rtd['high_coefficient'] * res**2 + rtd['low_coefficient'] * res + rtd['constant_coefficient']
