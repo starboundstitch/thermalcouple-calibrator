@@ -16,8 +16,6 @@ from nidaqmx.constants import (
     ExcitationSource,
 )
 
-MAX_STABILITY_SLOPE = 0.1
-
 @dataclass
 class State:
 
@@ -27,6 +25,7 @@ class State:
             self.config = yaml.safe_load(file)
 
         self.ser: serial = self.createSerial()
+        print("**Fluke Device Initialized**")
         self.task: nidaqmx.Task = 0
         self.pastData = []
         # Various Temperature Sources
@@ -87,6 +86,8 @@ class State:
             while True:
                 input("Hit Enter to Attempt to re-write file.")
                 break
+
+        print("**Calibration Data Written**")
 
 
     # Collects Data required for each of the test points and stores the state
@@ -286,8 +287,7 @@ class State:
             else:
                 sorted_points.append(point_list[i + midpoint])
 
-        print("***Generated Point***")
-        print(sorted_points)
+        print("**Generated Points**")
 
         return sorted_points
 
@@ -297,6 +297,8 @@ def main():
     with nidaqmx.Task() as task:
         # Create Calibration State (loads config)
         state = State()
+
+        print("**State Initialized**")
 
         rtd = state.config['RTD']
         task.ai_channels.add_ai_resistance_chan(
@@ -315,6 +317,8 @@ def main():
                 thermocouple_type=ThermocoupleType[tc_type],
             )
 
+        print("**NI Devices Initialized**")
+
         # task.timing.cfg_samp_clk_timing(5.0, sample_mode=AcquisitionType.CONTINUOUS)
 
         # Create internal calibration state
@@ -325,6 +329,7 @@ def main():
 
         try:
             # Collect Data for all the temperatures
+            print("**Starting Calibration**")
             state.calibrateProbe()
 
             print("Finished Collecting Data")
@@ -336,6 +341,7 @@ def main():
             task.stop()
             state.heaterEnabled(False)
             state.ser.close()
+            input("Program has ended, click 'Enter' to close window: ")
 
 
 if __name__ == "__main__":
